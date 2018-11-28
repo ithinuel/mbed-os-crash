@@ -55,11 +55,10 @@ size_t download_test(NetworkInterface* interface, const unsigned char* data, siz
     int result = -1;
 
     /* setup TCP socket */
-    TCPSocket* tcpsocket = new TCPSocket(interface);
-    TEST_ASSERT_NOT_NULL_MESSAGE(tcpsocket, "failed to instantiate TCPSocket");
+    TCPSocket tcpsocket(interface);
 
     for (int tries = 0; tries < MAX_RETRIES; tries++) {
-        result = tcpsocket->connect(dl_host, 80);
+        result = tcpsocket.connect(dl_host, 80);
         TEST_ASSERT_MESSAGE(result != NSAPI_ERROR_NO_SOCKET, "out of sockets");
 
         if (result == 0) {
@@ -70,20 +69,20 @@ size_t download_test(NetworkInterface* interface, const unsigned char* data, siz
     }
     TEST_ASSERT_EQUAL_INT_MESSAGE(0, result, "failed to connect");
 
-    tcpsocket->set_blocking(false);
+    tcpsocket.set_blocking(false);
     printf("[NET-%d] Non-blocking socket mode set\r\n", thread_id);
 
     if (thread_id == 0) {
         // technically this is non-threaded mode
-        tcpsocket->sigio(socket_event_0);
+        tcpsocket.sigio(socket_event_0);
     } else if (thread_id == 1) {
-        tcpsocket->sigio(socket_event_1);
+        tcpsocket.sigio(socket_event_1);
     } else if (thread_id == 2) {
-        tcpsocket->sigio(socket_event_2);
+        tcpsocket.sigio(socket_event_2);
     } else if (thread_id == 3) {
-        tcpsocket->sigio(socket_event_3);
+        tcpsocket.sigio(socket_event_3);
     } else if (thread_id == 4) {
-        tcpsocket->sigio(socket_event_4);
+        tcpsocket.sigio(socket_event_4);
     } else {
         TEST_ASSERT_MESSAGE(0, "wrong thread id");
     }
@@ -104,9 +103,8 @@ size_t download_test(NetworkInterface* interface, const unsigned char* data, siz
     printf("[NET-%d] Request header: %s\r\n", thread_id, request);
 
     /* send request to server */
-    result = tcpsocket->send(request, request_size);
+    result = tcpsocket.send(request, request_size);
     TEST_ASSERT_EQUAL_INT_MESSAGE(request_size, result, "failed to send");
-    delete request;
 
     /* read response */
     char* receive_buffer = new char[buff_size];
@@ -133,7 +131,7 @@ size_t download_test(NetworkInterface* interface, const unsigned char* data, siz
 
         /* loop until all data has been read from socket */
         do {
-            result = tcpsocket->recv(receive_buffer, buff_size);
+            result = tcpsocket.recv(receive_buffer, buff_size);
             TEST_ASSERT_MESSAGE((result == NSAPI_ERROR_WOULD_BLOCK) || (result >= 0),
                 "failed to read socket");
 
@@ -179,9 +177,6 @@ size_t download_test(NetworkInterface* interface, const unsigned char* data, siz
     timer.stop();
     printf("[NET-%d] Downloaded: %.2fKB (%.2fKB/s, %.2f secs)\r\n", thread_id,
         float(received_bytes) / 1024, float(received_bytes) / timer.read() / 1024, timer.read());
-
-    delete tcpsocket;
-    delete[] receive_buffer;
 
     return received_bytes;
 }
