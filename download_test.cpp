@@ -51,6 +51,9 @@ static void socket_event_2(void) { event_fired[2] = true; }
 static void socket_event_3(void) { event_fired[3] = true; }
 static void socket_event_4(void) { event_fired[4] = true; }
 
+static char g_request_buffer[4][256]; // request is 65 bytes
+static char g_receive_buffer[4][1024];
+
 size_t download_test(NetworkInterface* interface, const unsigned char* data, size_t data_length, size_t buff_size, uint32_t thread_id) {
     int result = -1;
 
@@ -91,7 +94,7 @@ size_t download_test(NetworkInterface* interface, const unsigned char* data, siz
 
     /* setup request */
     size_t request_size = strlen(part1) + strlen(dl_path) + strlen(part2) + strlen(dl_host) + strlen(part3) + 1;
-    char *request = new char[request_size]();
+    char *request = g_request_buffer[thread_id-1];
 
     /* construct request */
     memcpy(&request[0], part1, strlen(part1));
@@ -107,7 +110,7 @@ size_t download_test(NetworkInterface* interface, const unsigned char* data, siz
     TEST_ASSERT_EQUAL_INT_MESSAGE(request_size, result, "failed to send");
 
     /* read response */
-    char* receive_buffer = new char[buff_size];
+    char* receive_buffer = g_receive_buffer[thread_id-1];
     TEST_ASSERT_NOT_NULL_MESSAGE(receive_buffer, "failed to allocate receive buffer");
 
     size_t received_bytes = 0;
